@@ -15,7 +15,7 @@ TEST(IPCTest, BasicMessageSendReceive) {
   auto remover = ipc2.add_listener(
       "test_msg", [&](const breeze_ipc::packet &pkt) { received = true; });
 
-  ipc1.send("test_msg", test_serializable_struct{1, 2.0f, {'a', 'b', 'c'}});
+  ipc1.send("test_msg", test_serializable_struct{1, 2.0f, "abc"});
 
   std::this_thread::sleep_for(
       std::chrono::milliseconds(100)); // Give time for IPC to process
@@ -115,7 +115,7 @@ TEST(IPCTest, BlinkContextRPC) {
 }
 
 TEST(IPCTest, Serialization) {
-  test_serializable_struct original{42, 3.14f, {'x', 'y', 'z'}};
+  test_serializable_struct original{42, 3.14f, "xyz"};
   auto serialized = struct_pack::serialize(original);
   auto deserialized =
       struct_pack::deserialize<test_serializable_struct>(serialized);
@@ -123,8 +123,7 @@ TEST(IPCTest, Serialization) {
   ASSERT_TRUE(deserialized.has_value());
   EXPECT_EQ(deserialized->a, 42);
   EXPECT_FLOAT_EQ(deserialized->b, 3.14f);
-  auto vec = std::vector<char>{'x', 'y', 'z'};
-  EXPECT_EQ(deserialized->c, vec);
+  EXPECT_EQ(deserialized->c, "xyz");
 }
 
 TEST(IPCTest, ALotOfPackets) {
@@ -139,7 +138,7 @@ TEST(IPCTest, ALotOfPackets) {
       "test_msg", [&](const breeze_ipc::packet &pkt) { received++; });
 
   for (int i = 0; i < count; ++i) {
-    client.send("test_msg", test_serializable_struct{i, i * 1.1f, {'a', 'b'}});
+    client.send("test_msg", test_serializable_struct{i, i * 1.1f, "ab"});
   }
 
   std::this_thread::sleep_for(
