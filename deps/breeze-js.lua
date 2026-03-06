@@ -21,8 +21,14 @@ set_enabled(false)]], {plain = true})
 add_defines("NDEBUG")
 if is_plat("macosx") then
     add_cxxflags("-fexperimental-library")
+end
+if is_arch("x86") then
+    add_cxflags("--target=i686-pc-windows-msvc")
+    add_cxxflags("--target=i686-pc-windows-msvc")
 end]], {plain = true})
-        import("package.tools.xmake").install(package)
+        import("package.tools.xmake").install(package, {
+            configs = {"--toolchain=clang-cl"},
+        })
     end)
 
     on_test(function (package)
