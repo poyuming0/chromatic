@@ -25,12 +25,14 @@
 namespace chromatic {
 std::unique_ptr<context> context::current = nullptr;
 
+static LONG WINAPI unhandled_exception_handler(EXCEPTION_POINTERS *ep) {
+  ELOGFMT(FATAL, "Unhandled exception: {}", cpptrace::stacktrace::current());
+  Sleep(1000);
+  return EXCEPTION_CONTINUE_SEARCH;
+}
+
 void context::init_singleton() {
-  SetUnhandledExceptionFilter(+[](EXCEPTION_POINTERS *ep) -> long {
-    ELOGFMT(FATAL, "Unhandled exception: {}", cpptrace::stacktrace::current());
-    Sleep(1000);
-    return EXCEPTION_CONTINUE_SEARCH;
-  });
+  SetUnhandledExceptionFilter(unhandled_exception_handler);
 
   CPPTRACE_TRY {
     if (!current) {
