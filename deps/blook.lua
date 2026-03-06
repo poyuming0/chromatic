@@ -9,6 +9,7 @@ package("blook")
                 "-DCMAKE_PREFIX_PATH=" .. package:installdir(),
                 "-DFETCHCONTENT_QUIET=OFF",
                 "-DFETCHCONTENT_BASE_DIR=" .. fcdir,
+                "-DCMAKE_CXX_FLAGS=/EHsc",
         })
         
         os.cp("include/blook/**", package:installdir("include/blook/"))
