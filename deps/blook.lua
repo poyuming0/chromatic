@@ -4,12 +4,17 @@ package("blook")
     set_sourcedir(path.join(os.scriptdir(), "blook"))
     on_install(function (package)
         local fcdir = package:cachedir() .. "/fetchcontent"
+        local cxxflags = "/EHsc"
+        if package:is_arch("x86") then
+            cxxflags = cxxflags .. " --target=i686-pc-windows-msvc"
+        end
         import("package.tools.cmake").install(package, {
                 "-DCMAKE_INSTALL_PREFIX=" .. package:installdir(),
                 "-DCMAKE_PREFIX_PATH=" .. package:installdir(),
                 "-DFETCHCONTENT_QUIET=OFF",
                 "-DFETCHCONTENT_BASE_DIR=" .. fcdir,
-                "-DCMAKE_CXX_FLAGS=/EHsc",
+                "-DCMAKE_CXX_FLAGS=" .. cxxflags,
+                "-DCMAKE_C_FLAGS=" .. (package:is_arch("x86") and "--target=i686-pc-windows-msvc" or ""),
         })
         
         os.cp("include/blook/**", package:installdir("include/blook/"))
