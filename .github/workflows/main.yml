@@ -31,6 +31,8 @@ jobs:
           package-cache: true
           package-cache-key: windows-2025
 
+      - uses: ilammy/msvc-dev-cmd@v1
+
       - name: Configure
         run: xmake config -v --yes --toolchain=clang-cl --mode=releasedbg
 
