@@ -156,7 +156,11 @@ void context::init_ipc() {
   //   process_ipc.connect(std::format(
   //       "chromatic://process/{}",
   //       std::hash<std::string>{}(utils::current_executable_path().string())));
-  process_ipc.connect("chromatic_process");
+  try {
+    process_ipc.connect("chromatic_process");
+  } catch (const std::exception &e) {
+    ELOGFMT(WARN, "IPC init failed (non-fatal): {}", e.what());
+  }
 }
 void context::on_before_chrome_startup() {
   ELOGFMT(INFO, "on_before_chrome_startup called");
