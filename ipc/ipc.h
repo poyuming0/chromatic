@@ -52,7 +52,7 @@ concept StructPackSerializable = requires(T t) {
 struct test_serializable_struct {
   int a;
   float b;
-  std::vector<char> c;
+  std::string c;
 };
 
 static_assert(StructPackSerializable<test_serializable_struct>,
