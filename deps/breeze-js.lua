@@ -26,9 +26,7 @@ if is_arch("x86") then
     add_cxflags("--target=i686-pc-windows-msvc")
     add_cxxflags("--target=i686-pc-windows-msvc")
 end]], {plain = true})
-        import("package.tools.xmake").install(package, {
-            configs = {"--toolchain=clang-cl"},
-        })
+        import("package.tools.xmake").install(package)
     end)
 
     on_test(function (package)
