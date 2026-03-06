@@ -7,6 +7,13 @@ add_rules("plugin.compile_commands.autoupdate", {outputdir = "build"})
 
 add_rules("mode.releasedbg")
 
+if is_arch("x86") then
+    add_cxflags("--target=i686-pc-windows-msvc")
+    add_cxxflags("--target=i686-pc-windows-msvc")
+    add_ldflags("/machine:x86")
+    add_shflags("/machine:x86")
+end
+
 includes("deps/blook.lua")
 includes("deps/breeze-js.lua")
 includes("deps/cpp-ipc.lua")
