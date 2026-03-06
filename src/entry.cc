@@ -38,7 +38,13 @@ int APIENTRY DllMain(HINSTANCE hInstance, DWORD fdwReason, LPVOID lpvReserved) {
       return 1; // Skip if this is a gpu process
     }
 
-    chromatic::main();
+    // Avoid running initialization under loader lock.
+    // CreateThread is safe to call from DllMain; the new thread will
+    // start executing once the loader lock is released.
+    CreateThread(nullptr, 0, [](LPVOID) -> DWORD {
+      chromatic::main();
+      return 0;
+    }, nullptr, 0, nullptr);
     break;
   }
   }
