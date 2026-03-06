@@ -213,6 +213,15 @@ public:
         static_cast<DWORD>(total_shm_size >> 32),
         static_cast<DWORD>(total_shm_size & 0xFFFFFFFF), shm_name.c_str());
 
+    if (h_map_file_ == NULL && sa != nullptr) {
+      // Retry without custom security attributes (SACL may require
+      // SE_RELABEL_NAME privilege which non-elevated processes lack)
+      h_map_file_ = ::CreateFileMappingW(
+          INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
+          static_cast<DWORD>(total_shm_size >> 32),
+          static_cast<DWORD>(total_shm_size & 0xFFFFFFFF), shm_name.c_str());
+    }
+
     if (h_map_file_ == NULL)
       detail::throw_windows_error("CreateFileMappingW failed for " + name);
 
@@ -260,6 +269,9 @@ public:
 
     if (is_creator) {
       h_data_ready_event_ = ::CreateEventW(sa, TRUE, FALSE, event_name.c_str());
+      if (h_data_ready_event_ == NULL && sa != nullptr) {
+        h_data_ready_event_ = ::CreateEventW(nullptr, TRUE, FALSE, event_name.c_str());
+      }
       if (h_data_ready_event_ == NULL) {
         disconnect();
         detail::throw_windows_error("CreateEventW failed for " + name);
