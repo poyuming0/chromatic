@@ -1,60 +1,66 @@
 name: Build
-permissions: write-all
 
 on:
   push:
-    branches: [ "chromatic" ]
+    branches: [chromatic]
   pull_request:
-    branches: [ "chromatic" ]
+    branches: [chromatic]
   release:
     types: [created]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: windows-2025
+    permissions:
+      contents: write
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    - uses: xmake-io/github-action-setup-xmake@v1
-      with:
-        xmake-version: latest
-        actions-cache-folder: '.xmake-cache'
-        actions-cache-key: 'ci'
-        package-cache: true
-        package-cache-key: windows-2025
-        # build-cache: true
-        # build-cache-key: ${{ matrix.os }}-${{ matrix.build_type }}
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+          actions-cache-folder: .xmake-cache
+          actions-cache-key: ci
+          package-cache: true
+          package-cache-key: windows-2025
 
-    - name: Xmake configure
-      run: |
-        xmake config -v --yes --toolchain=clang-cl --mode=releasedbg
+      - name: Configure
+        run: xmake config -v --yes --toolchain=clang-cl --mode=releasedbg
 
-    - name: build-releasedbg
-      run: |
-        xmake b --yes --verbose
+      - name: Build
+        run: xmake build --yes --verbose
 
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4.6.0
-      with:
-        path: ./build/windows/x64/
-        name: windows-build
+      - name: Test
+        run: xmake run chromatic_ipc_test
 
-    - name: Create Archive
-      if: github.event_name == 'release'
-      run: |
-        Compress-Archive -Path ./build/windows/* -DestinationPath windows-build-pdb.zip
-        Remove-Item -Path ./build/windows/x64/releasedbg/*.pdb -Force
-        Remove-Item -Path ./build/windows/x64/releasedbg/*.lib -Force
-        Compress-Archive -Path ./build/windows/* -DestinationPath windows-build.zip
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromatic-windows-x64-${{ github.sha }}
+          path: build/windows/x64/releasedbg/
+          retention-days: 30
 
-    - name: Upload Release Assets
-      if: github.event_name == 'release'
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          windows-build.zip
-          windows-build-pdb.zip
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create release archives
+        if: github.event_name == 'release'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build/windows/x64/releasedbg/* -DestinationPath chromatic-windows-x64-pdb.zip
+          $staging = "release-staging"
+          New-Item -ItemType Directory -Path $staging
+          Get-ChildItem build/windows/x64/releasedbg/* -Exclude *.pdb,*.lib | Copy-Item -Destination $staging
+          Compress-Archive -Path $staging/* -DestinationPath chromatic-windows-x64.zip
+
+      - name: Upload release assets
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            chromatic-windows-x64.zip
+            chromatic-windows-x64-pdb.zip
