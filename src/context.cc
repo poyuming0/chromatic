@@ -209,7 +209,7 @@ void context::init_context() {
 
     config::run_config_loader();
     config::on_reload.push_back([this]() {
-      if (process_ipc.channel.is_connected()) {
+      if (process_ipc.is_connected()) {
         ELOGFMT(INFO, "Config reloaded, broadcasting to other processes.");
         process_ipc.send("config_reload", *config::current);
       }
@@ -217,7 +217,7 @@ void context::init_context() {
 
     ELOGFMT(INFO, "Chromatic v0.0.0, initialized as main process.");
 
-    if (process_ipc.channel.is_connected()) {
+    if (process_ipc.is_connected()) {
       process_ipc.send("config_reload", *config::current);
 
       process_ipc.add_call_handler<config>("get_config",
