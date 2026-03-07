@@ -198,9 +198,9 @@ public:
         L"IPC_Channel_SHM_" + std::wstring(name.begin(), name.end());
     std::wstring event_name =
         L"IPC_Channel_EVT_" + std::wstring(name.begin(), name.end());
+
+    // Try custom SA first (for cross-integrity IPC), fall back to default
     LPSECURITY_ATTRIBUTES sa = detail::get_sa();
-    if (!sa)
-      throw Exception("Failed to get security attributes.");
 
     const size_t header_size = get_header_size();
     const size_t slot_size =
@@ -208,18 +208,22 @@ public:
     const size_t total_shm_size = header_size + config_.capacity * slot_size;
 
     bool is_creator = false;
-    h_map_file_ = ::CreateFileMappingW(
-        INVALID_HANDLE_VALUE, sa, PAGE_READWRITE,
-        static_cast<DWORD>(total_shm_size >> 32),
-        static_cast<DWORD>(total_shm_size & 0xFFFFFFFF), shm_name.c_str());
 
-    if (h_map_file_ == NULL && sa != nullptr) {
-      // Retry without custom security attributes (SACL may require
-      // SE_RELABEL_NAME privilege which non-elevated processes lack)
+    // Try with custom SA
+    if (sa) {
+      h_map_file_ = ::CreateFileMappingW(
+          INVALID_HANDLE_VALUE, sa, PAGE_READWRITE,
+          static_cast<DWORD>(total_shm_size >> 32),
+          static_cast<DWORD>(total_shm_size & 0xFFFFFFFF), shm_name.c_str());
+    }
+
+    // Fall back to default SA
+    if (h_map_file_ == NULL) {
       h_map_file_ = ::CreateFileMappingW(
           INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
           static_cast<DWORD>(total_shm_size >> 32),
           static_cast<DWORD>(total_shm_size & 0xFFFFFFFF), shm_name.c_str());
+      sa = nullptr;
     }
 
     if (h_map_file_ == NULL)
@@ -269,7 +273,7 @@ public:
 
     if (is_creator) {
       h_data_ready_event_ = ::CreateEventW(sa, TRUE, FALSE, event_name.c_str());
-      if (h_data_ready_event_ == NULL && sa != nullptr) {
+      if (h_data_ready_event_ == NULL) {
         h_data_ready_event_ = ::CreateEventW(nullptr, TRUE, FALSE, event_name.c_str());
       }
       if (h_data_ready_event_ == NULL) {
