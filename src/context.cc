@@ -276,27 +276,32 @@ void context::init_context() {
       blink_parse_html_manipulator::register_js();
     }).detach();
   } else if (cmdline.find(L"--type=renderer") != std::wstring::npos) {
-    easylog::add_appender([this](std::string_view msg) {
-      process_ipc.call<bool, std::string>("log", std::string(msg));
-    });
+    if (process_ipc.is_connected()) {
+      easylog::add_appender([this](std::string_view msg) {
+        process_ipc.call<bool, std::string>("log", std::string(msg));
+      });
 
-    ELOGFMT(INFO, "requesting config from main process.");
-    process_ipc.add_listener<config>("config_reload", [](const config &cfg) {
-      ELOGFMT(INFO, "Received config_reload");
-      config::current = std::make_unique<config>(cfg);
-    });
-    process_ipc.call<config>("get_config");
-    process_ipc.send(breeze_ipc::packet {
-      .seq = 1,
-      .return_for_call = 0,
-      .name = "call_get_config",
-      .data = "true"
-    });
-    auto p = process_ipc.call_and_poll<config>("get_config");
-    if (p) {
-      config::current = std::make_unique<config>(p.value());
+      ELOGFMT(INFO, "requesting config from main process.");
+      process_ipc.add_listener<config>("config_reload", [](const config &cfg) {
+        ELOGFMT(INFO, "Received config_reload");
+        config::current = std::make_unique<config>(cfg);
+      });
+      process_ipc.call<config>("get_config");
+      process_ipc.send(breeze_ipc::packet {
+        .seq = 1,
+        .return_for_call = 0,
+        .name = "call_get_config",
+        .data = "true"
+      });
+      auto p = process_ipc.call_and_poll<config>("get_config");
+      if (p) {
+        config::current = std::make_unique<config>(p.value());
+      } else {
+        ELOGFMT(WARN, "Failed to get config from main process, using default.");
+        config::current = std::make_unique<config>();
+      }
     } else {
-      ELOGFMT(WARN, "Failed to get config from main process, using default.");
+      ELOGFMT(WARN, "IPC not connected, using default config for renderer.");
       config::current = std::make_unique<config>();
     }
 
