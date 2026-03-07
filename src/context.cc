@@ -209,22 +209,26 @@ void context::init_context() {
 
     config::run_config_loader();
     config::on_reload.push_back([this]() {
-      ELOGFMT(INFO, "Config reloaded, broadcasting to other processes.");
-      process_ipc.send("config_reload", *config::current);
+      if (process_ipc.channel.is_connected()) {
+        ELOGFMT(INFO, "Config reloaded, broadcasting to other processes.");
+        process_ipc.send("config_reload", *config::current);
+      }
     });
 
     ELOGFMT(INFO, "Chromatic v0.0.0, initialized as main process.");
 
-    process_ipc.send("config_reload", *config::current);
+    if (process_ipc.channel.is_connected()) {
+      process_ipc.send("config_reload", *config::current);
 
-    process_ipc.add_call_handler<config>("get_config",
-                                         []() { return *config::current; });
+      process_ipc.add_call_handler<config>("get_config",
+                                           []() { return *config::current; });
 
-    process_ipc.add_call_handler<bool, std::string>(
-        "log", [](const std::string &msg) {
-          log_msg_raw("[other_proc] " + msg);
-          return true;
-        });
+      process_ipc.add_call_handler<bool, std::string>(
+          "log", [](const std::string &msg) {
+            log_msg_raw("[other_proc] " + msg);
+            return true;
+          });
+    }
 
     std::thread([this]() {
       detect_process_type();
