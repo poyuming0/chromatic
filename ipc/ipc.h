@@ -81,6 +81,8 @@ struct breeze_ipc {
 
   void connect(std::string_view name);
 
+  bool is_connected() const { return channel.is_connected(); }
+
   inline size_t inc_seq() { return seq++; }
   inline size_t next_fragment_id() { return next_fragment_id_++; }
 
